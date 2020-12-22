@@ -2,7 +2,8 @@
 module memory
 //-------------------------------------------------------------------------------------------------
 (
-	input  wire       clock,
+	input  wire       clock56,
+	input  wire       clock28,
 	output wire       ready,
 
 	input  wire       reset,
@@ -41,7 +42,7 @@ reg mapram;
 reg m1on;
 reg[3:0] mappage;
 
-always @(posedge clock) if(ce)
+always @(posedge clock28) if(ce)
 if(!reset)
 begin
 	forcemap <= 1'b0;
@@ -87,7 +88,7 @@ wire[13:0] romA = a[13:0];
 
 rom #(.AW(14), .FN("48.hex")) Rom
 (
-	.clock  (clock  ),
+	.clock  (clock28),
 	.ce     (ce     ),
 	.q      (romQ   ),
 	.a      (romA   )
@@ -100,7 +101,7 @@ wire[12:0] esxA = a[12:0];
 
 rom #(.AW(13), .FN("esxdos.hex")) Esxdos
 (
-	.clock  (clock  ),
+	.clock  (clock28),
 	.ce     (ce     ),
 	.q      (esxQ   ),
 	.a      (esxA   )
@@ -115,11 +116,11 @@ wire[12:0] dprA2 = a[12:0];
 
 dpr Ram
 (
-	.rdclock  (clock  ),
+	.rdclock  (clock28),
 	.rdclocken(vce    ),
 	.q        (vq     ),
 	.rdaddress(dprA1  ),
-	.wrclock  (clock  ),
+	.wrclock  (clock28),
 	.wrclocken(ce     ),
 	.wren     (dprWe2 ),
 	.data     (d      ),
@@ -137,7 +138,7 @@ wire[23:0] sdrA  = { 5'b00000, a[15:14] == 2'b00 && map ? { 2'b01, page, a[12:0]
 
 sdram SDram
 (
-	.clock  (clock  ),
+	.clock  (clock56),
 	.reset  (reset  ),
 	.ready  (ready  ),
 	.refresh(rfsh   ),

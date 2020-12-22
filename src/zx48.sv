@@ -36,36 +36,37 @@ clock Clock
 (
 	.inclk0(clock27),
 	.c0    (clock56),
+	.c1    (clock28),
 	.locked(clockOn)
 );
 
 reg[3:0] ce;
-always @(negedge clock56) ce <= ce+1'd1;
+always @(negedge clock28) if(clockOn) ce <= ce+1'd1;
 
-wire ce7M0p = ~ce[0] & ~ce[1] &  ce[2];
-wire ce7M0n = ~ce[0] & ~ce[1] & ~ce[2];
+wire ce7M0p = clockOn & ~ce[0] &  ce[1];
+wire ce7M0n = clockOn & ~ce[0] & ~ce[1];
 
-wire ce3M5p = ~ce[0] & ~ce[1] & ~ce[2] &  ce[3];
-wire ce3M5n = ~ce[0] & ~ce[1] & ~ce[2] & ~ce[3];
+wire ce3M5p = clockOn & ~ce[0] & ~ce[1] &  ce[2];
+wire ce3M5n = clockOn & ~ce[0] & ~ce[1] & ~ce[2];
 
 //-------------------------------------------------------------------------------------------------
 
 reg[5:0] rs;
 wire powerOn = rs[5];
-always @(posedge clock56) if(cc3M5p) if(!rs[5]) rs <= rs+1'd1;
+always @(posedge clock28) if(cc3M5p) if(!rs[5]) rs <= rs+1'd1;
 
 //-------------------------------------------------------------------------------------------------
 
 reg mreqt23iorqtw3;
-always @(posedge clock56) if(cc3M5p) mreqt23iorqtw3 <= mreq & ioFE;
+always @(posedge clock28) if(cc3M5p) mreqt23iorqtw3 <= mreq & ioFE;
 
 reg cpuck;
-always @(posedge clock56) if(ce7M0n) cpuck <= !(cpuck && contend);
+always @(posedge clock28) if(ce7M0n) cpuck <= !(cpuck && contend);
 
 wire contend = !(vduCn && cpuck && mreqt23iorqtw3 && ((!a[15] && a[14]) || !ioFE));
 
-wire cc3M5p = ce3M5n & contend;
-wire cc3M5n = ce3M5p & contend;
+wire cc3M5p = ce3M5p & contend;
+wire cc3M5n = ce3M5n & contend;
 
 //-------------------------------------------------------------------------------------------------
 
@@ -73,7 +74,7 @@ wire reset = powerOn & clockOn & memOn & keyF11 & osdRs;
 wire nmi = keyF5 & osdNmi;
 
 reg mi = 1'b1;
-always @(posedge clock56) if(cc3M5p) mi <= vduI;
+always @(posedge clock28) if(cc3M5p) mi <= vduI;
 
 wire[ 7:0] d;
 wire[ 7:0] q;
@@ -81,7 +82,7 @@ wire[15:0] a;
 
 cpu Cpu
 (
-	.clock  (clock56),
+	.clock  (clock28),
 	.cep    (cc3M5p ),
 	.cen    (cc3M5n ),
 	.reset  (reset  ),
@@ -105,7 +106,7 @@ reg speaker;
 reg[2:0] border;
 
 wire ioFE = !(!iorq && !a[0]);
-always @(posedge clock56) if(ce7M0n) if(!ioFE && !wr) { speaker, mic, border } <= q[4:0];
+always @(posedge clock28) if(ce7M0n) if(!ioFE && !wr) { speaker, mic, border } <= q[4:0];
 
 //-------------------------------------------------------------------------------------------------
 
@@ -115,7 +116,8 @@ wire[12:0] memVA = vduA;
 
 memory Mem
 (
-	.clock  (clock56),
+	.clock56(clock56),
+	.clock28(clock28),
 	.reset  (reset  ),
 	.ready  (memOn  ),
 	.rfsh   (rfsh   ),
@@ -151,7 +153,7 @@ wire[17:0] vduRGB;
 
 vdu Vdu
 (
-	.clock  (clock56),
+	.clock  (clock28),
 	.ce     (ce7M0n ),
 	.border (border ),
 	.bi     (vduI   ),
@@ -166,8 +168,6 @@ vdu Vdu
 
 //-------------------------------------------------------------------------------------------------
 
-wire psgMix = keyF8 & osdMix;
-
 wire[7:0] psgA1;
 wire[7:0] psgB1;
 wire[7:0] psgC1;
@@ -178,7 +178,7 @@ wire[7:0] psgC2;
 
 audio Aud
 (
-	.clock  (clock56),
+	.clock  (clock28),
 	.reset  (reset  ),
 	.speaker(speaker),
 	.mic    (mic    ),
@@ -189,22 +189,22 @@ audio Aud
 	.a2     (psgA2  ),
 	.b2     (psgB2  ),
 	.c2     (psgC2  ),
-	.mix    (psgMix ),
+	.mix    (osdMix ),
 	.audio  (audio  )
 );
 
 //-------------------------------------------------------------------------------------------------
-
-wire[1:0] keyPs2 = { ps2_kbd_data, ps2_kbd_clk };
 
 wire[4:0] keyQ;
 wire[7:0] keyA = a[15:8];
 
 keyboard Key
 (
-	.clock  (clock56),
+	.clock  (clock28),
 	.ce     (ce7M0p ),
-	.ps2    (keyPs2 ),
+	.code   (ps2Code),
+	.strobe (ps2Strb),
+	.pressed(~ps2Prsd),
 	.f5     (keyF5  ),
 	.f8     (keyF8  ),
 	.f11    (keyF11 ),
@@ -220,7 +220,7 @@ wire[7:0] psgQ;
 
 turbosound TS
 (
-	.clock  (clock56),
+	.clock  (clock28),
 	.ce     (ce3M5p ),
 	.reset  (reset  ),
 	.bdir   (bdir   ),
@@ -242,7 +242,7 @@ wire[7:0] usdA = a[7:0];
 
 usd uSD
 (
-	.clock  (clock56),
+	.clock  (clock28),
 	.cep    (ce7M0p ),
 	.cen    (ce7M0n ),
 	.iorq   (iorq   ),
@@ -253,8 +253,8 @@ usd uSD
 	.a      (usdA   ),
 	.cs     (spi_cs ),
 	.ck     (spi_ck ),
-	.miso   (spi_do ),
-	.mosi   (spi_di )
+	.miso   (spi_di ),
+	.mosi   (spi_do )
 );
 
 //-------------------------------------------------------------------------------------------------
@@ -272,137 +272,145 @@ assign d
 
 //-------------------------------------------------------------------------------------------------
 
-//assign led = 1'b0;//assign led = { usdCs, ~psgMix }; // clockOn & powerOn };
+assign led = ~sd_busy;
 
 //-------------------------------------------------------------------------------------------------
 
 localparam CONF_STR = {
 	"ZX48;;",
-	"O2,PSG Mixer,ACB,ABC;",
-	"OFG,Scandoubler Fx,None,HQ2x,CRT 25%,CRT 50%;",
-	"T1,NMI;",
 	"T0,Reset;",
+	"T1,NMI;",
+	"O2,Scandoubler,Off,On;",
+	"O34,Scanlines,None,25%,50%,75%;",
+	"O5,AY mixer,ACB,ABC;",
 	"V,v1.0"
 };
 
-wire        ps2_kbd_clk;
-wire        ps2_kbd_data;
+wire[31:0] status;
+wire[ 7:0] ps2Code;
+wire       ps2Strb;
+wire       ps2Prsd;
+wire       scandoubler_disable;
 
-wire  [1:0] buttons;
-wire  [1:0] switches;
-wire        scandoubler_disable;
-wire        ypbpr;
-wire [31:0] status;
+wire       sd_ack_conf;
+wire       sd_conf;
+wire       sd_sdhc;
+wire       sd_busy;
 
-wire        sd_rd_plus3;
-wire        sd_wr_plus3;
-wire [31:0] sd_lba_plus3;
-wire [7:0]  sd_buff_din_plus3;
-
-wire        sd_rd_wd;
-wire        sd_wr_wd;
-wire [31:0] sd_lba_wd;
-wire [7:0]  sd_buff_din_wd;
-
-wire        sd_busy_mmc;
-wire        sd_rd_mmc;
-wire        sd_wr_mmc;
-wire [31:0] sd_lba_mmc;
-wire  [7:0] sd_buff_din_mmc;
-
-wire [31:0] sd_lba = sd_busy_mmc ? sd_lba_mmc : (plus3_fdd_ready ? sd_lba_plus3 : sd_lba_wd);
-wire  [1:0] sd_rd = { sd_rd_plus3 | sd_rd_wd, sd_rd_mmc };
-wire  [1:0] sd_wr = { sd_wr_plus3 | sd_wr_wd, sd_wr_mmc };
-
-wire        sd_ack;
-wire  [8:0] sd_buff_addr;
-wire  [7:0] sd_buff_dout;
-wire  [7:0] sd_buff_din = sd_busy_mmc ? sd_buff_din_mmc : (plus3_fdd_ready ? sd_buff_din_plus3 : sd_buff_din_wd);
-wire        sd_buff_wr;
-wire  [1:0] img_mounted;
-wire [31:0] img_size;
-
-wire        sd_ack_conf;
-wire        sd_conf;
-wire        sd_sdhc;
-
-wire        ioctl_wr;
-wire [24:0] ioctl_addr;
-wire  [7:0] ioctl_dout;
-wire        ioctl_download;
-wire  [7:0] ioctl_index;
-
+wire[31:0] sd_lba;
+wire[ 1:0] sd_rd;
+wire[ 1:0] sd_wr;
+wire       sd_ack;
+wire[ 8:0] sd_buff_addr;
+wire[ 7:0] sd_buff_din;
+wire[ 7:0] sd_buff_dout;
+wire       sd_buff_wr;
+wire       img_readonly;
+wire[ 1:0] img_mounted;
+wire[31:0] img_size;
 
 wire osdRs = ~status[0];
 wire osdNmi = ~status[1];
-wire osdMix = ~status[2];
+wire osdMix = ~status[5];
 
-wire plus3_fdd_ready = 1'b0;
-
-mist_io #(.STRLEN(($size(CONF_STR)>>3))) mist_io
-(
+user_io #(.STRLEN(($size(CONF_STR)>>3))) userIo
+( 
 	.*,
-	.ioctl_ce(1),
-	.conf_str(CONF_STR),
+	.conf_str    (CONF_STR),
+	.clk_sys     (clock28 ),
+	.clk_sd      (clock28 ),
+	.SPI_CLK     (spiCk   ),
+	.SPI_SS_IO   (cfgD0   ),
+	.SPI_MISO    (spiDo   ),
+	.SPI_MOSI    (spiDi   ),
+	.status      (status  ),
+	.key_code    (ps2Code ),
+	.key_strobe  (ps2Strb ),
+	.key_pressed (ps2Prsd ),
+	.key_extended(        ),
+	.scandoubler_disable(scandoubler_disable),
 
-	.CONF_DATA0(cfgD0),
-	.clk_sys(clock56),
-	.SPI_SCK(spiCk),
-	.SPI_SS2(spiS2),
-	.SPI_DI(spiDi),
-	.SPI_DO(spiDo),
+	.sd_conf(0),
+	.sd_sdhc(1),
+	.sd_lba(sd_lba),
+	.sd_rd(sd_rd),
+	.sd_wr(sd_wr),
+	.sd_ack(sd_ack),
+	.sd_buff_addr(sd_buff_addr),
+	.sd_din(sd_buff_din),
+	.sd_din_strobe(),
+	.sd_dout(sd_buff_dout),
+	.sd_dout_strobe(sd_buff_wr),
+	.img_mounted(img_mounted),
+	.img_size(img_size),
 
-	// unused
-	.ps2_key(),
-	.ps2_mouse(),
+	.conf_chr(),
+	.conf_addr(),
+	.ps2_kbd_clk(),
+	.ps2_kbd_data(),
 	.ps2_mouse_clk(),
 	.ps2_mouse_data(),
+	.mouse_x(),
+	.mouse_y(),
+	.mouse_z(),
+	.mouse_idx(),
+	.mouse_flags(),
+	.mouse_strobe(),
+	.serial_data(),
+	.serial_strobe(),
 	.joystick_0(),
 	.joystick_1(),
+	.joystick_2(),
+	.joystick_3(),
+	.joystick_4(),
 	.joystick_analog_0(),
-	.joystick_analog_1()
+	.joystick_analog_1(),
+	.buttons(),
+	.switches(),
+	.ypbpr(),
+	.no_csync(),
+	.core_mod(),
+	.rtc()
 );
 
-sd_card sd_card
+mist_video mistVideo
 (
-    .*,
-	.clk_sys(clock56),
-    .img_mounted(img_mounted[0]), //first slot for SD-card emulation
-    .sd_busy(sd_busy_mmc),
-    .sd_rd(sd_rd_mmc),
-    .sd_wr(sd_wr_mmc),
-    .sd_lba(sd_lba_mmc),
-    .sd_buff_din(sd_buff_din_mmc),
-    .allow_sdhc(1),
-    .sd_cs (spi_cs),
-    .sd_sck(spi_ck),
-    .sd_sdi(spi_do),
-    .sd_sdo(spi_di)
+	.clk_sys     (clock28    ),
+	.SPI_SCK     (spiCk      ),
+	.SPI_DI      (spiDi      ),
+	.SPI_SS3     (spiS3      ),
+	.scanlines   (status[4:3]),
+	.ce_divider  (1'b0       ),
+	.no_csync    (1'b0       ),
+	.ypbpr       (1'b0       ),
+	.rotate      (2'b00      ),
+	.blend       (1'b0       ),
+	.R           (vduRGB[17:12]),
+	.G           (vduRGB[11: 6]),
+	.B           (vduRGB[ 5: 0]),
+	.HSync       (~vduHs     ),
+	.VSync       (~vduVs     ),
+	.VGA_R       (rgb[17:12] ),
+	.VGA_G       (rgb[11: 6] ),
+	.VGA_B       (rgb[ 5: 0] ),
+	.VGA_VS      (sync[1]    ),
+	.VGA_HS      (sync[0]    ),
+	.scandoubler_disable(scandoubler_disable)
 );
 
-osd #(.OSD_X_OFFSET(10'd0), .OSD_Y_OFFSET(10'd0), .OSD_COLOR(3'd4)) Osd
+sd_card sdCard
 (
 	.*,
-	.clk_sys(clock56),
-	.ce(0),
-	.rotate(0),
-	.SPI_SCK(spiCk),
-	.SPI_SS3(spiS3),
-	.SPI_DI(spiDi),
-
-	.R_in(vduRGB[17:12]),
-	.G_in(vduRGB[11: 6]),
-	.B_in(vduRGB[ 5: 0]),
-	.HSync(~vduHs     ),
-	.VSync(~vduVs     ),
-
-	.R_out(rgb[17:12] ),
-	.G_out(rgb[11: 6] ),
-	.B_out(rgb[ 5: 0] )
+	.clk_sys   (clock28 ),
+    .sd_cs     (spi_cs  ),
+    .sd_sck    (spi_ck  ),
+    .sd_sdi    (spi_do  ),
+    .sd_sdo    (spi_di  ),
+	.allow_sdhc(1       ),
+	.sd_rd     (sd_rd[0]),
+	.sd_wr     (sd_wr[0]),
+	.img_mounted(img_mounted[0])
 );
-
-assign sync = ~(vduHs^vduVs);
-assign led = ~ioctl_download;
 
 //-------------------------------------------------------------------------------------------------
 endmodule

@@ -174,11 +174,16 @@ set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -
 
 # end ENTITY(zx48)
 # ----------------
-set_global_assignment -name VERILOG_FILE src/mist/osd.v
+set_global_assignment -name GENERATE_RBF_FILE ON
+set_global_assignment -name SDC_FILE src/framework/constraints.sdc
+set_global_assignment -name VERILOG_FILE src/framework/user_io.v
+set_global_assignment -name VERILOG_FILE src/framework/sd_card.v
+set_global_assignment -name VERILOG_FILE src/framework/scandoubler.v
+set_global_assignment -name SYSTEMVERILOG_FILE src/framework/rgb2ypbpr.sv
+set_global_assignment -name VERILOG_FILE src/framework/osd.v
+set_global_assignment -name VERILOG_FILE src/framework/mist_video.v
+set_global_assignment -name SYSTEMVERILOG_FILE src/framework/cofi.sv
 set_global_assignment -name VERILOG_FILE src/spi.v
-set_global_assignment -name VERILOG_FILE src/mist/sd_card.v
-set_global_assignment -name VERILOG_FILE src/mist/mist_io.v
-set_global_assignment -name SDC_FILE src/mist/constraints.sdc
 set_global_assignment -name VERILOG_FILE src/JT49/jt49_noise.v
 set_global_assignment -name VERILOG_FILE src/JT49/jt49_exp.v
 set_global_assignment -name VERILOG_FILE src/JT49/jt49_eg.v

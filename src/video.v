@@ -53,7 +53,6 @@ reg[7:0] attrOutput;
 wire attrOutputLoad = hCount[2:0] == 4;
 always @(posedge clock) if(ce) if(attrOutputLoad) attrOutput <= { videoEnable ? attrInput[7:3] : { 2'b00, border }, attrInput[2:0] };
 
-
 //-------------------------------------------------------------------------------------------------
 
 wire hSync = hCount >= 344 && hCount <= 375;
