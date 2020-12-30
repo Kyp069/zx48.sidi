@@ -175,6 +175,7 @@ set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -
 # end ENTITY(zx48)
 # ----------------
 set_global_assignment -name GENERATE_RBF_FILE ON
+set_global_assignment -name QSYS_FILE src/clockctrl.qsys
 set_global_assignment -name SDC_FILE src/framework/constraints.sdc
 set_global_assignment -name VERILOG_FILE src/framework/user_io.v
 set_global_assignment -name VERILOG_FILE src/framework/sd_card.v

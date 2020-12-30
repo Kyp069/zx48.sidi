@@ -36,18 +36,24 @@ clock Clock
 (
 	.inclk0(clock27),
 	.c0    (clock56),
-	.c1    (clock28),
-	.locked(clockOn)
+	.c1    (co28   ),
+	.locked(locked )
+);
+clockctrl ClockCtrl
+(
+	.ena   (locked ),
+	.inclk (co28   ),
+	.outclk(clock28)
 );
 
-reg[3:0] ce;
-always @(negedge clock28) if(clockOn) ce <= ce+1'd1;
+reg[3:0] ce = 4'b1111;
+always @(negedge clock28) ce <= ce+1'd1;
 
-wire ce7M0p = clockOn & ~ce[0] &  ce[1];
-wire ce7M0n = clockOn & ~ce[0] & ~ce[1];
+wire ce7M0p = locked & ~ce[0] &  ce[1];
+wire ce7M0n = locked & ~ce[0] & ~ce[1];
 
-wire ce3M5p = clockOn & ~ce[0] & ~ce[1] &  ce[2];
-wire ce3M5n = clockOn & ~ce[0] & ~ce[1] & ~ce[2];
+wire ce3M5p = locked & ~ce[0] & ~ce[1] &  ce[2];
+wire ce3M5n = locked & ~ce[0] & ~ce[1] & ~ce[2];
 
 //-------------------------------------------------------------------------------------------------
 
@@ -65,12 +71,12 @@ always @(posedge clock28) if(ce7M0n) cpuck <= !(cpuck && contend);
 
 wire contend = !(vduCn && cpuck && mreqt23iorqtw3 && ((!a[15] && a[14]) || !ioFE));
 
-wire cc3M5p = ce3M5p & contend;
-wire cc3M5n = ce3M5n & contend;
+wire cc3M5p = ce3M5n & contend;
+wire cc3M5n = ce3M5p & contend;
 
 //-------------------------------------------------------------------------------------------------
 
-wire reset = powerOn & clockOn & memOn & keyF11 & osdRs;
+wire reset = powerOn & memOn & keyF11 & osdRs;
 wire nmi = keyF5 & osdNmi;
 
 reg mi = 1'b1;

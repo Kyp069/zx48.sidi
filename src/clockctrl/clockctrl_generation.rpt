@@ -1,0 +1,18 @@
+Info: Starting: Create HDL design files for synthesis
+Info: qsys-generate D:\Proyectos\fpga\spectrum\sidi\zx48\src\clockctrl.qsys --synthesis=VERILOG --output-directory=D:\Proyectos\fpga\spectrum\sidi\zx48\src\clockctrl\synthesis --family="Cyclone IV E" --part=EP4CE22F17C8
+Progress: Loading src/clockctrl.qsys
+Progress: Reading input file
+Progress: Adding altclkctrl_0 [altclkctrl 17.1]
+Progress: Parameterizing module altclkctrl_0
+Progress: Building connections
+Progress: Parameterizing connections
+Progress: Validating
+Progress: Done reading input file
+: clockctrl.altclkctrl_0: Targeting device family: Cyclone IV E.
+: clockctrl.altclkctrl_0: Global clock network allows a clock signal to reach all parts of the chip with the same amount of skew. Input port 'clkselect' can be used to switch between four clock inputs.
+Info: clockctrl: Generating clockctrl "clockctrl" for QUARTUS_SYNTH
+Info: altclkctrl_0: Generating top-level entity clockctrl_altclkctrl_0.
+Info: altclkctrl_0: "clockctrl" instantiated altclkctrl "altclkctrl_0"
+Info: clockctrl: Done "clockctrl" with 2 modules, 2 files
+Info: qsys-generate succeeded.
+Info: Finished: Create HDL design files for synthesis
